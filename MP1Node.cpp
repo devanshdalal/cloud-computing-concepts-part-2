@@ -19,15 +19,15 @@
 
 namespace
 {
-constexpr size_t MSGSIZE = sizeof(MessageHdr) + sizeof(int) + sizeof(int);
-MessageHdr *CreateMessage(MsgTypes type, int src, int target)
-{
-    MessageHdr *msg = (MessageHdr *)malloc(MSGSIZE * sizeof(char));
-    msg->msgType = type;
-    memcpy((char *)(msg + 1), &src, sizeof(int));
-    memcpy((char *)(msg + 1) + sizeof(int), &target, sizeof(int));
-    return msg;
-}
+    constexpr size_t MSGSIZE = sizeof(MessageHdr) + sizeof(int) + sizeof(int);
+    MessageHdr *CreateMessage(MsgTypes type, int src, int target)
+    {
+        MessageHdr *msg = (MessageHdr *)malloc(MSGSIZE * sizeof(char));
+        msg->msgType = type;
+        memcpy((char *)(msg + 1), &src, sizeof(int));
+        memcpy((char *)(msg + 1) + sizeof(int), &target, sizeof(int));
+        return msg;
+    }
 } // namespace
 
 MP1Node::MP1Node(Member *member, Params *params, EmulNet *emul, Log *log, Address *address)
@@ -298,7 +298,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size)
 
     case JOINREP:
     {
-        std::cout << "JOINREP " << this_node_ << "\n";
+        // std::cout << "JOINREP " << this_node_ << "\n";
         int nodes = (size - sizeof(MessageHdr)) / sizeof(int);
         int *fields = (int *)(msg + 1);
         for (int i = 0; i < nodes; ++i)
@@ -314,7 +314,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size)
     {
         const int &src = *(int *)(msg + 1);
         const int &dest = *((int *)(msg + 1) + 1);
-        std::cout << "PING " << this_node_ << " " << src << " " << dest << "\n";
+        // std::cout << "PING " << this_node_ << " " << src << " " << dest << "\n";
         if (dest == this_node_)
         {
             // send a PONG to the requesting node.
@@ -327,7 +327,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size)
         }
         else
         {
-            std::cout << "Indirect PING\n";
+            // std::cout << "Indirect PING\n";
             // send a PING to the requested node and later send PONG back to the client to the requesting node.
             auto *message = CreateMessage(PING, this_node_, dest);
             Address a(std::to_string(dest) + ":0");
@@ -341,13 +341,13 @@ bool MP1Node::recvCallBack(void *env, char *data, int size)
     case PONG:
     {
         const int &src = *(int *)(msg + 1);
-        const int &dest = *((int *)(msg + 1) + 1);
-        std::cout << "PONG " << this_node_ << " " << src << " " << dest << "\n";
+        // const int &dest = *((int *)(msg + 1) + 1);
+        // std::cout << "PONG " << this_node_ << " " << src << " " << dest << "\n";
         auto it = local_state_.find(src);
         if (it != local_state_.end())
         {
             NodeStatus &status = it->second;
-            std::cout << "PONG2 " << status.state << "a\n";
+            // std::cout << "PONG2 " << status.state << "a\n";
             switch (status.state)
             {
             case TIMEOUTWAITING:
@@ -356,7 +356,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size)
                 break;
             case FINALWAITING:
             {
-                std::cout << "FINALWAITING\n";
+                // std::cout << "FINALWAITING\n";
                 auto *message = CreateMessage(PONG, src, status.node);
                 Address a(std::to_string(status.node) + ":0");
                 emulNet->ENsend(&memberNode->addr, &a, (char *)message, MSGSIZE);
@@ -370,11 +370,11 @@ bool MP1Node::recvCallBack(void *env, char *data, int size)
         local_state_.erase(src);
         for (auto jt = local_state_.begin(); jt != local_state_.end(); ++jt)
         {
-            std::cout << "local_stateeee: " << jt->first << " " << jt->second.state << " " << jt->second.timeout << jt->second.node << "\n";
+            // std::cout << "local_stateeee: " << jt->first << " " << jt->second.state << " " << jt->second.timeout << jt->second.node << "\n";
         }
         if (m_.find(src) == m_.end())
         {
-            std::cout << "Special case\n";
+            // std::cout << "Special case\n";
             // AddNode(src);
         }
     }
@@ -383,7 +383,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size)
     case FAILED:
     {
         const int &failed = *(int *)(msg + 1);
-        std::cout << "FAILED " << failed << " " << this_node_ << " " << (m_.find(failed) != m_.end()) << " " << m_.size() << " " << memberList.size() << "\n";
+        // std::cout << "FAILED " << failed << " " << this_node_ << " " << (m_.find(failed) != m_.end()) << " " << m_.size() << " " << memberList.size() << "\n";
         if (m_.find(failed) != m_.end())
         {
             m_.erase(failed);
@@ -418,7 +418,7 @@ bool MP1Node::recvCallBack(void *env, char *data, int size)
  */
 void MP1Node::nodeLoopOps()
 {
-    std::cout << "Start nodeLoopOps " << this_node_ << " " << last_detection_ << "\n";
+    // std::cout << "Start nodeLoopOps " << this_node_ << " " << last_detection_ << "\n";
     if (!memberNode->memberList.size())
         return;
     const auto current_time = par->getcurrtime();
@@ -446,19 +446,19 @@ void MP1Node::nodeLoopOps()
 
     ModifyLocalState();
 
-    std::cout << "End nodeLoopOps\n";
+    // std::cout << "End nodeLoopOps\n";
     return;
 }
 
 void MP1Node::ModifyLocalState()
 {
-    std::cout << "Start ModifyLocalState\n";
+    // std::cout << "Start ModifyLocalState\n";
     const auto current_time = par->getcurrtime();
     for (auto it = local_state_.begin(); it != local_state_.end();)
     {
         const auto &node_status = it->second;
-        std::cout << "node_status.state: " << node_status.state << " " << this_node_ << " " << it->first << "\n";
-        std::cout << "node_status: " << node_status.timeout << " " << current_time << "\n";
+        // std::cout << "node_status.state: " << node_status.state << " " << this_node_ << " " << it->first << "\n";
+        // std::cout << "node_status: " << node_status.timeout << " " << current_time << "\n";
         if (node_status.timeout <= current_time)
         {
             switch (node_status.state)
@@ -493,13 +493,13 @@ void MP1Node::ModifyLocalState()
             ++it;
         }
     }
-    std::cout << "End ModifyLocalState\n";
+    // std::cout << "End ModifyLocalState\n";
 }
 
 void MP1Node::PublishToAll(const MessageHdr &msg, size_t size)
 {
-    std::cout << "Start PublishToAll "
-              << " " << this_node_ << "," << msg.msgType << "\n";
+    // std::cout << "Start PublishToAll "
+    // << " " << this_node_ << "," << msg.msgType << "\n";
     for (int i = 0; i < memberNode->memberList.size(); ++i)
     {
         auto &e = memberNode->memberList[i];
@@ -511,12 +511,12 @@ void MP1Node::PublishToAll(const MessageHdr &msg, size_t size)
             // failed to send to this node.
         }
     }
-    std::cout << "End PublishToAll\n";
+    // std::cout << "End PublishToAll\n";
 }
 
 void MP1Node::PingK(int node_id)
 {
-    std::cout << "Start PingK " << this_node_ << " " << node_id << "\n";
+    // std::cout << "Start PingK " << this_node_ << " " << node_id << "\n";
     // const auto current_time = par->getcurrtime();
     for (int i = 0; i < SWIMK; ++i)
     {
@@ -533,16 +533,16 @@ void MP1Node::PingK(int node_id)
         MessageHdr *msg = CreateMessage(PING, this_node_, node_id);
         if (!emulNet->ENsend(&memberNode->addr, &a, (char *)msg, MSGSIZE))
         {
-            std::cout << "SWIMK ENsend failed\n";
+            // std::cout << "SWIMK ENsend failed\n";
             // failed to send to this node.
         }
         else
         {
-            std::cout << "SWIMK ENsend passed" << new_id << "\n";
+            // std::cout << "SWIMK ENsend passed" << new_id << "\n";
         }
         free(msg);
     }
-    std::cout << "End PingK\n";
+    // std::cout << "End PingK\n";
 }
 
 /**

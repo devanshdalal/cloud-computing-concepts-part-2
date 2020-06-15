@@ -20,6 +20,23 @@
 #include "Queue.h"
 
 /**
+ * Macros
+ */
+#define READ_QUORUM 2
+#define WRITE_QUORUM 2
+#define READ_TIMEOUT 15	 // in globaltime units
+#define WRITE_TIMEOUT 15 // in globaltime units
+
+struct LocalState
+{
+	MessageType type;
+	std::string key;
+	std::string value;
+	int expiry;
+	size_t replies;
+};
+
+/**
  * CLASS NAME: MP2Node
  *
  * DESCRIPTION: This class encapsulates all the key-value store functionality
@@ -29,7 +46,8 @@
  * 				3) Server side CRUD APIs
  * 				4) Client side CRUD APIs
  */
-class MP2Node {
+class MP2Node
+{
 private:
 	// Vector holding the next two neighbors in the ring who have my replicas
 	vector<Node> hasMyReplicas;
@@ -38,19 +56,32 @@ private:
 	// Ring
 	vector<Node> ring;
 	// Hash Table
-	HashTable * ht;
+	HashTable *ht;
+	// secondary hash Table
+	HashTable *secondary;
+	// tertiary hash Table
+	HashTable *tertiary;
 	// Member representing this member
 	Member *memberNode;
 	// Params object
 	Params *par;
 	// Object of EmulNet
-	EmulNet * emulNet;
+	EmulNet *emulNet;
 	// Object of Log
-	Log * log;
+	Log *log;
+	// local_state_
+	std::map<int, LocalState> local_state_;
+	// current transaction id
+	// int trans_id = 1;
+	int local_time = 0;
+
+	void clientCreateOrUpdate(string key, string value, MessageType type);
+	void deleteExpired();
 
 public:
 	MP2Node(Member *memberNode, Params *par, EmulNet *emulNet, Log *log, Address *addressOfMember);
-	Member * getMemberNode() {
+	Member *getMemberNode()
+	{
 		return this->memberNode;
 	}
 
